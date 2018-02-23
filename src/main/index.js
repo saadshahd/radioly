@@ -1,5 +1,10 @@
-import download from 'download';
-import { app, BrowserWindow, ipcMain } from 'electron' // eslint-disable-line
+import os from 'os';
+import fs from 'fs';
+import path from 'path';
+import fg from 'fast-glob';
+import pify from 'pify';
+import mm from 'musicmetadata';
+import { app, BrowserWindow, ipcMain } from 'electron'; // eslint-disable-line
 
 /**
  * Set `__static` path to static files in production
@@ -13,6 +18,9 @@ let mainWindow;
 const winURL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:9080'
   : `file://${__dirname}/index.html`;
+
+const homeMp3s = path.join(os.homedir(), '/**/*.mp3');
+const mmify = pify(mm);
 
 function createWindow() {
   /**
@@ -30,24 +38,32 @@ function createWindow() {
 
   mainWindow.maximize();
   mainWindow.show();
-
-  ipcMain.on('download', (e, url) => {
-    download(url, __static)
-      .on('response', (res) => {
-        const total = res.headers['content-length'];
-        let progress = 0;
-
-        res.on('data', (d) => {
-          progress += d.length;
-          e.sender.send('data', ((progress / total) * 100).toFixed(1));
-        });
-      })
-      .then((a) => {
-        e.sender.send('downloaded', a);
-      });
-  });
-
   mainWindow.loadURL(winURL);
+
+  ipcMain.on('GET_LOCAL_TRACKS', (e) => {
+    const stream = fg.stream(homeMp3s);
+    let tracks = [];
+
+    stream.once('data', () => {
+      tracks = [];
+    });
+
+    stream.on('data', (file) => {
+      mmify(fs.createReadStream(file))
+        .then((track) => {
+          const { artist, title, genre } = track;
+
+          tracks = [...tracks, {
+            artist,
+            title,
+            genre,
+            name: path.basename(file, path.extname(file)),
+          }];
+
+          e.sender.send('GOT_LOCAL_TRACKS', tracks);
+        });
+    });
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -55,7 +71,6 @@ function createWindow() {
 }
 
 app.on('ready', createWindow);
-
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();

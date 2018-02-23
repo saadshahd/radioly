@@ -1,43 +1,36 @@
 <template>
-  <audio-player :html5="true" :sources="audioSources"></audio-player>
+  <ListTracks :items="localTracks"></ListTracks>
 </template>
 
 <script>
-  import AudioPlayer from './AudioPlayer.vue';
+  import { mapActions, mapState } from 'vuex';
+  import ListTracks from './LandingPage/ListTracks.vue';
 
   export default {
     name: 'landing-page',
-    components: { AudioPlayer },
-    beforeMount() {
-      this.$http
-        .post('https://soundpump.net/download', {
-          uri: 'https://soundcloud.com/ahmed_abo_elmakarem/hq-cairokee-elnsheed',
-        })
-        .then(({ data: { downloadUrl: url } }) => {
-          this.$electron.ipcRenderer.send('download', url);
-        });
-
-      this.$electron.ipcRenderer.on('data', console.log);
-      this.$electron.ipcRenderer.on('downloaded', console.dir);
+    components: {
+      ListTracks,
     },
-    data() {
-      return {
-        audioSources: [
-          'static/main.mp3',
-        ],
-      };
+
+    computed: {
+      ...mapState('Tracks', {
+        localTracks: state => state.local,
+      }),
+    },
+
+    methods: {
+      ...mapActions('Tracks', [
+        'setLocal',
+      ]),
+    },
+
+    beforeMount() {
+      this.$electron.ipcRenderer.send('GET_LOCAL_TRACKS');
+      this.$electron.ipcRenderer.on('GOT_LOCAL_TRACKS', (e, tracks) => {
+        this.setLocal(tracks);
+      });
     },
   };
 </script>
 
-<style>
-  @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro');
-
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  body { font-family: 'Source Sans Pro', sans-serif; }
-</style>
+<style></style>
