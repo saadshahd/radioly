@@ -4,13 +4,10 @@
 
 <script>
   import { mapActions, mapState } from 'vuex';
-  import ListTracks from './LandingPage/ListTracks.vue';
 
   export default {
     name: 'landing-page',
-    components: {
-      ListTracks,
-    },
+    components: {},
 
     computed: {
       ...mapState('Tracks', {

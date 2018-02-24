@@ -1,11 +1,11 @@
 import Vue from 'vue';
-import LandingPage from '@/components/LandingPage';
+import Landing from '@/components/Landing';
 
-describe('LandingPage.vue', () => {
+describe('Landing.vue', () => {
   it('should render correct contents', () => {
     const vm = new Vue({
       el: document.createElement('div'),
-      render: h => h(LandingPage),
+      render: h => h(Landing),
     }).$mount();
 
     expect(vm.$el.querySelector('.title').textContent).to.contain('Welcome to your new project!');
